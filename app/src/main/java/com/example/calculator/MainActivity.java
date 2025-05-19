@@ -15,8 +15,6 @@ public class MainActivity extends AppCompatActivity {
     TextView input;
     String currentInput = "";
 
-    Button btnAdd, btnMinus, btnMultiply, btnDecimal, btnCancel, btn0, btnDivide;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -41,17 +39,32 @@ public class MainActivity extends AppCompatActivity {
         // Operator buttons
         setOperatorButton(R.id.btnadd, "+");
         setOperatorButton(R.id.btnminus, "-");
-        setOperatorButton(R.id.btnmutiply, "*");
-        setOperatorButton(R.id.btndevide, "/");
+        setOperatorButton(R.id.btnmultiply, "*");
+        setOperatorButton(R.id.btndivide, "/");
 
-        // Equals and Cancel buttons
+        // Equals and Clear buttons
         Button btnEquals = findViewById(R.id.btnequals);
-        Button btnCancel = findViewById(R.id.btncuncel);
+        Button btnClear = findViewById(R.id.btnClear);
 
         btnEquals.setOnClickListener(v -> calculate());
-        btnCancel.setOnClickListener(v -> {
+
+        btnClear.setOnClickListener(v -> {
             currentInput = "";
-            input.setText("");
+            input.setText("0");
+        });
+    }
+
+    private void setNumberButton(int id, String value) {
+        Button button = findViewById(id);
+        button.setOnClickListener(v -> {
+            if (value.equals(".")) {
+                String[] parts = currentInput.split("[-+*/]");
+                if (parts.length > 0 && parts[parts.length - 1].contains(".")) {
+                    return; // Prevent multiple decimals in a number
+                }
+            }
+            currentInput += value;
+            input.setText(currentInput);
         });
     }
 
@@ -71,29 +84,22 @@ public class MainActivity extends AppCompatActivity {
         return lastChar == '+' || lastChar == '-' || lastChar == '*' || lastChar == '/';
     }
 
-    private void setNumberButton(int id, String value) {
-        Button button = findViewById(id);
-        button.setOnClickListener(v -> {
-            // Prevent multiple decimal points in a number
-            if (value.equals(".")) {
-                String[] parts = currentInput.split("[-+*/]");
-                if (parts.length > 0 && parts[parts.length - 1].contains(".")) {
-                    return; // Don't add another decimal point
-                }
-            }
-            currentInput += value;
-            input.setText(currentInput);
-        });
-    }
-
     private void calculate() {
-
         try {
             if (currentInput.isEmpty()) return;
 
             double result = eval(currentInput);
-            input.setText(String.valueOf(result));
-            currentInput = String.valueOf(result);
+            if (Double.isNaN(result)) {
+                input.setText("Error");
+                currentInput = "";
+                return;
+            }
+
+            // Remove .0 if result is whole number
+            String formatted = (result == (long) result) ? String.format("%d", (long) result) : String.valueOf(result);
+            input.setText(formatted);
+            currentInput = formatted;
+
         } catch (Exception e) {
             input.setText("Error");
             currentInput = "";
@@ -130,17 +136,14 @@ public class MainActivity extends AppCompatActivity {
             numbers.push(applyOp(a, b, op));
         }
 
-        if (numbers.isEmpty()) return 0;
-        return numbers.pop();
+        return numbers.isEmpty() ? 0 : numbers.pop();
     }
 
     private int precedence(char op) {
-        if (op == '+' || op == '-') return 1;
-        if (op == '*' || op == '/') return 2;
-        return 0;
+        return (op == '+' || op == '-') ? 1 : 2;
     }
 
-    private Double applyOp(Double a, Double b, char op) {
+    private double applyOp(double a, double b, char op) {
         switch (op) {
             case '+': return a + b;
             case '-': return a - b;
@@ -151,7 +154,7 @@ public class MainActivity extends AppCompatActivity {
                     return Double.NaN;
                 }
                 return a / b;
-            default: return 0.0;
+            default: return 0;
         }
     }
 }
