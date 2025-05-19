@@ -12,9 +12,12 @@ import java.util.Stack;
 
 public class MainActivity extends AppCompatActivity {
 
+    // UI Components
     TextView input;
     String currentInput = "";
-    boolean isOpeningBracket = true; // tracks if next bracket should be opening
+
+    // Tracks whether the next bracket should be opening '(' or closing ')'
+    boolean isOpeningBracket = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -22,9 +25,12 @@ public class MainActivity extends AppCompatActivity {
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
 
+        // Initialize the display TextView
         input = findViewById(R.id.input);
 
-        // Number buttons
+        // ======================
+        // SET UP NUMBER BUTTONS
+        // ======================
         setNumberButton(R.id.btn0, "0");
         setNumberButton(R.id.btn1, "1");
         setNumberButton(R.id.btn2, "2");
@@ -37,15 +43,21 @@ public class MainActivity extends AppCompatActivity {
         setNumberButton(R.id.btn9, "9");
         setNumberButton(R.id.btndecimal, ".");
 
-        // Operator buttons
+        // ========================
+        // SET UP OPERATOR BUTTONS
+        // ========================
         setOperatorButton(R.id.btnadd, "+");
         setOperatorButton(R.id.btnminus, "-");
         setOperatorButton(R.id.btnmultiply, "*");
         setOperatorButton(R.id.btndivide, "/");
 
-        // Bracket Button
+        // =====================
+        // BRACKET BUTTON LOGIC
+        // =====================
         Button btnBracket = findViewById(R.id.btnOpenBracket);
         btnBracket.setOnClickListener(v -> {
+
+            // Alternate between opening and closing brackets
             if (isOpeningBracket) {
                 currentInput += "(";
             } else {
@@ -55,17 +67,25 @@ public class MainActivity extends AppCompatActivity {
             input.setText(currentInput);
         });
 
-        // Plus/Minus Button
+        // ===========================
+        // PLUS/MINUS TOGGLE BUTTON
+        // ===========================
         Button btnPlusMinus = findViewById(R.id.btnPlusMinus);
         btnPlusMinus.setOnClickListener(v -> toggleNegative());
 
-        // Percentage Button
+        // ====================
+        // PERCENTAGE BUTTON
+        // ====================
         Button btnPercent = findViewById(R.id.btnPercent);
         btnPercent.setOnClickListener(v -> {
             if (!currentInput.isEmpty() && !endsWithOperator(currentInput)) {
                 try {
                     double value = eval(currentInput);
+
+                    // Convert to percentage
                     double percent = value / 100;
+
+                    // Format to remove decimal if it's a whole number
                     currentInput = (percent == (long) percent) ?
                             String.format("%d", (long) percent) :
                             String.valueOf(percent);
@@ -77,20 +97,28 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        // Equals and Clear buttons
+        // ======================
+        // EQUALS BUTTON (CALCULATE)
+        // ======================
         Button btnEquals = findViewById(R.id.btnequals);
-        Button btnClear = findViewById(R.id.btnClear);
-
         btnEquals.setOnClickListener(v -> calculate());
 
+        // =================
+        // CLEAR BUTTON
+        // =================
+        Button btnClear = findViewById(R.id.btnClear);
         btnClear.setOnClickListener(v -> {
             currentInput = "";
             input.setText("0");
-            // reseting bracket
             isOpeningBracket = true;
         });
     }
 
+    /**
+     * Helper method to configure number buttons
+     * @param id The button's resource ID
+     * @param value The numeric value this button represents
+     */
     private void setNumberButton(int id, String value) {
         Button button = findViewById(id);
         button.setOnClickListener(v -> {
@@ -105,6 +133,11 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * Helper method to configure operator buttons
+     * @param buttonId The button's resource ID
+     * @param operator The operator symbol this button represents
+     */
     private void setOperatorButton(int buttonId, String operator) {
         Button button = findViewById(buttonId);
         button.setOnClickListener(v -> {
@@ -115,48 +148,65 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * Checks if the input string ends with an operator
+     * @param input The string to check
+     * @return true if the string ends with +, -, *, or /
+     */
     private boolean endsWithOperator(String input) {
         if (input.isEmpty()) return false;
         char lastChar = input.charAt(input.length() - 1);
         return lastChar == '+' || lastChar == '-' || lastChar == '*' || lastChar == '/';
     }
 
+    /**
+     * Toggles the sign of the current number (positive/negative)
+     */
     private void toggleNegative() {
         if (currentInput.isEmpty()) return;
 
+        // Find the position of the last operator
         int lastOperatorIndex = Math.max(
                 Math.max(currentInput.lastIndexOf('+'), currentInput.lastIndexOf('-')),
                 Math.max(currentInput.lastIndexOf('*'), currentInput.lastIndexOf('/'))
         );
 
+        // Extract the number after the last operator
         String number = currentInput.substring(lastOperatorIndex + 1);
         String prefix = currentInput.substring(0, lastOperatorIndex + 1);
 
+        // Toggle the sign
         if (number.startsWith("-")) {
-            number = number.substring(1);
+            number = number.substring(1);  // Remove negative sign
         } else {
-            number = "-" + number;
+            number = "-" + number;         // Add negative sign
         }
 
         currentInput = prefix + number;
         input.setText(currentInput);
     }
 
+    /**
+     * Calculates and displays the result of the current expression
+     */
     private void calculate() {
         try {
             if (currentInput.isEmpty()) return;
 
             double result = eval(currentInput);
+
+            // Handle division by zero and other math errors
             if (Double.isNaN(result)) {
                 input.setText("Error");
                 currentInput = "";
                 return;
             }
 
-            String formatted = (result == (long) result) ? String.format("%d", (long) result) : String.valueOf(result);
+            // Format to remove decimal if it's a whole number
+            String formatted = (result == (long) result) ?
+                    String.format("%d", (long) result) : String.valueOf(result);
             input.setText(formatted);
             currentInput = formatted;
-            // reseting bracket
             isOpeningBracket = true;
 
         } catch (Exception e) {
@@ -166,11 +216,16 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Evaluates a mathematical expression using the Shunting-yard algorithm
+     * @param expr The expression string to evaluate
+     * @return The numeric result of the evaluation
+     */
     private double eval(String expr) {
         expr = expr.replaceAll("\\s+", "");
         Stack<Double> numbers = new Stack<>();
         Stack<Character> operators = new Stack<>();
-        int i = 0;
+        int i = 0;  // Current position in the expression string
 
         while (i < expr.length()) {
             char c = expr.charAt(i);
@@ -178,27 +233,27 @@ public class MainActivity extends AppCompatActivity {
             if (c == '(') {
                 operators.push(c);
                 i++;
-            } else if (Character.isDigit(c) || c == '.') {
+            }
+            // Handle numbers (including decimals)
+            else if (Character.isDigit(c) || c == '.') {
                 StringBuilder sb = new StringBuilder();
                 while (i < expr.length() && (Character.isDigit(expr.charAt(i)) || expr.charAt(i) == '.')) {
                     sb.append(expr.charAt(i++));
                 }
                 numbers.push(Double.parseDouble(sb.toString()));
-            } else if (c == ')') {
+            }
+            // Handle closing bracket
+            else if (c == ')') {
                 while (!operators.isEmpty() && operators.peek() != '(') {
-                    double b = numbers.pop();
-                    double a = numbers.pop();
-                    char op = operators.pop();
-                    numbers.push(applyOp(a, b, op));
+                    numbers.push(applyOp(numbers.pop(), numbers.pop(), operators.pop()));
                 }
                 operators.pop();
                 i++;
-            } else if (c == '+' || c == '-' || c == '*' || c == '/') {
+            }
+            // Handle standard operators
+            else if (c == '+' || c == '-' || c == '*' || c == '/') {
                 while (!operators.isEmpty() && precedence(operators.peek()) >= precedence(c)) {
-                    double b = numbers.pop();
-                    double a = numbers.pop();
-                    char op = operators.pop();
-                    numbers.push(applyOp(a, b, op));
+                    numbers.push(applyOp(numbers.pop(), numbers.pop(), operators.pop()));
                 }
                 operators.push(c);
                 i++;
@@ -207,22 +262,33 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
+        // Process any remaining operators
         while (!operators.isEmpty()) {
-            double b = numbers.pop();
-            double a = numbers.pop();
-            char op = operators.pop();
-            numbers.push(applyOp(a, b, op));
+            numbers.push(applyOp(numbers.pop(), numbers.pop(), operators.pop()));
         }
 
         return numbers.isEmpty() ? 0 : numbers.pop();
     }
 
+    /**
+     * Determines operator precedence for evaluation order
+     * @param op The operator character
+     * @return Precedence level (higher number = higher precedence)
+     */
     private int precedence(char op) {
         if (op == '+' || op == '-') return 1;
         else if (op == '*' || op == '/') return 2;
         return 0;
     }
 
+    /**
+     * Applies an arithmetic operation to two numbers
+     * @param a The first operand
+     * @param b The second operand
+     * @param op The operator (+, -, *, /)
+     * @return The result of the operation
+     * @throws ArithmeticException for division by zero
+     */
     private double applyOp(double a, double b, char op) {
         switch (op) {
             case '+': return a + b;
@@ -234,7 +300,7 @@ public class MainActivity extends AppCompatActivity {
                     return Double.NaN;
                 }
                 return a / b;
+            default: return 0;
         }
-        return 0;
     }
 }
